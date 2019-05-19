@@ -7,38 +7,41 @@ fun main(args: Array<String>) {
     if (args.isEmpty()) {
         exitWithMessage(
             """
-                Usage: rename <path1 path2 ...>
-
                 Rename all files with .kt/.java to .kt.2019/.java.2019 in folder (and sub-folders)
+                Usage: rename <path1 path2 ...>
             """.trimIndent()
         )
     }
 
     args.forEach(::proceed)
-
-    println("Done!")
 }
 
 private fun proceed(path: String) {
     val folder = File(path)
 
     if (folder.isFile) {
-        println("$path is not folder!")
+        println("\"$path\" is file!")
         return
     }
 
-    folder.walkTopDown().forEach { file ->
-        if (isDesiredFile(file)) {
-            rename(file)
-        } else if (file.isDirectory) {
-            proceed(folder.path + file.path)
+    folder.walkTopDown()
+        .onFail { file, e ->
+            println("Can not read files in \"$file\"")
+        }.forEach { file ->
+            if (file != folder) {
+                if (isDesiredFile(file)) {
+                    printSuccess(file)
+                } else if (file.isDirectory) {
+                    proceed(file.path)
+                }
+            }
         }
-    }
 }
 
 private fun isDesiredFile(file: File) = file.isFile && (file.extension == "kt" || file.extension == "java")
 
-private fun rename(file: File) {
+
+private fun printSuccess(file: File) {
     val newFile = File(file.path + ".2019")
     file.renameTo(newFile)
     printResult(file.path, newFile.path)
